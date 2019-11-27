@@ -26,6 +26,9 @@ class RateMyApp {
   /// Launches to subtract to the number of launches when the user clicks on "Maybe later".
   int remindLaunches;
 
+  /// Maximum dialog open count
+  int maxOpens;
+
   /// The google play identifier.
   String googlePlayIdentifier;
 
@@ -38,6 +41,9 @@ class RateMyApp {
   /// Number of launches.
   int launches;
 
+  /// Number of dialog opens.
+  int opens;
+
   /// Whether the dialog should not be opened again.
   bool doNotOpenAgain;
 
@@ -48,6 +54,7 @@ class RateMyApp {
     this.minLaunches = 10,
     this.remindDays = 7,
     this.remindLaunches = 10,
+    this.maxOpens,
     this.googlePlayIdentifier,
     this.appStoreIdentifier,
   });
@@ -57,6 +64,7 @@ class RateMyApp {
     SharedPreferences preferences = await SharedPreferences.getInstance();
     baseLaunchDate = DateTime.fromMillisecondsSinceEpoch(preferences.getInt(preferencesPrefix + 'baseLaunchDate') ?? DateTime.now().millisecondsSinceEpoch);
     launches = (preferences.getInt(preferencesPrefix + 'launches') ?? 0) + 1;
+    opens = preferences.getInt(preferencesPrefix + 'opens') ?? 0;
     doNotOpenAgain = preferences.getBool(preferencesPrefix + 'doNotOpenAgain') ?? false;
     await save();
   }
@@ -66,6 +74,7 @@ class RateMyApp {
     SharedPreferences preferences = await SharedPreferences.getInstance();
     await preferences.setInt(preferencesPrefix + 'baseLaunchDate', baseLaunchDate.millisecondsSinceEpoch);
     await preferences.setInt(preferencesPrefix + 'launches', launches);
+    await preferences.setInt(preferencesPrefix + 'opens', opens);
     await preferences.setBool(preferencesPrefix + 'doNotOpenAgain', doNotOpenAgain);
   }
 
@@ -73,12 +82,15 @@ class RateMyApp {
   Future<void> reset() async {
     baseLaunchDate = DateTime.now();
     launches = 0;
+    opens = 0;
     doNotOpenAgain = false;
     await save();
   }
 
   /// Whether the dialog should be opened.
-  bool get shouldOpenDialog => !doNotOpenAgain && (DateTime.now().millisecondsSinceEpoch - baseLaunchDate.millisecondsSinceEpoch) / (1000 * 60 * 60 * 24) >= minDays && launches >= minLaunches;
+  bool get shouldOpenDialog => !doNotOpenAgain && (DateTime.now().millisecondsSinceEpoch - baseLaunchDate.millisecondsSinceEpoch) / (1000 * 60 * 60 * 24) >= minDays
+    && launches >= minLaunches
+    && (maxOpens!= null && maxOpens > opens);
 
   /// Returns the corresponding store identifier.
   String get storeIdentifier => Platform.isIOS ? appStoreIdentifier : googlePlayIdentifier;
@@ -94,6 +106,9 @@ class RateMyApp {
     bool ignoreIOS = false,
     DialogStyle dialogStyle = const DialogStyle(),
   }) async {
+    opens++;
+    save();
+
     if (!ignoreIOS && Platform.isIOS && await _CHANNEL.invokeMethod('canRequestReview')) {
       return _CHANNEL.invokeMethod('requestReview');
     }
@@ -123,6 +138,9 @@ class RateMyApp {
     ),
     StarRatingOptions starRatingOptions = const StarRatingOptions(),
   }) async {
+    opens++;
+    save();
+
     if (!ignoreIOS && Platform.isIOS && await _CHANNEL.invokeMethod('canRequestReview')) {
       return _CHANNEL.invokeMethod('requestReview');
     }
