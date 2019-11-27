@@ -61,9 +61,9 @@ class RateMyAppDialog extends StatelessWidget {
           Wrap(
             alignment: WrapAlignment.end,
             children: [
-              _createRateButton(context),
-              _createLaterButton(context),
-              _createNoButton(context),
+              rateButton != null ? _createRateButton(context) : Container(),
+              laterButton != null ? _createLaterButton(context) : Container(),
+              noButton != null ? _createNoButton(context) : Container(),
             ],
           ),
         ],
